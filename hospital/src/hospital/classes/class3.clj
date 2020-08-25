@@ -9,12 +9,12 @@
 (comment "As shown in the examples from class 2 when a global variable (root binding) is defined, any thread can access
 and redefine its value, causing conflits and inconsistency.")
 
-(let [name "Hellyan"]
-  ; prints Hellyan
-  (pprint name)
-  (let [name "Lucas"]
-    ; prints Lucas - Shadowing
-    (pprint name)))
+#_(let [name "Hellyan"]
+    ; prints Hellyan
+    (pprint name)
+    (let [name "Lucas"]
+      ; prints Lucas - Shadowing
+      (pprint name)))
 
 
 (defn test-atom []
@@ -32,4 +32,45 @@ and redefine its value, causing conflits and inconsistency.")
     (swap! hospital-oliveira update :lab-1 conj "111")
     (pprint @hospital-oliveira)))
 
-(test-atom)
+;; (test-atom)
+
+(comment "Swap retries if the atom state changed since the function execution beggined.
+Therefore its preferable to use pure functions (no side effects) when working with swap.")
+(defn arrive-at-waiting! [hospital person]
+  (swap! hospital h.logic/arrive-at-with-waiting-with-logs :waiting-line person)
+  (println "inserted " person))
+
+(defn arrive-at! [hospital person]
+  (swap! hospital h.logic/arrive-at-with-logs :waiting-line person)
+  (println "inserted " person))
+
+(defn simulation-parallel-thread []
+  (let [hospital (atom (h.model/new-hospital))]
+    (.start (Thread. (fn [])))
+    (.start (Thread. (fn [] (arrive-at! hospital "111"))))
+    (.start (Thread. (fn [] (arrive-at! hospital "222"))))
+    (.start (Thread. (fn [] (arrive-at! hospital "333"))))
+    (.start (Thread. (fn [] (arrive-at! hospital "444"))))
+    (.start (Thread. (fn [] (arrive-at! hospital "555"))))
+    (.start (Thread. (fn [] (arrive-at! hospital "666"))))
+    (.start (Thread. (fn [] (Thread/sleep 10000)
+                       (pprint @hospital))))))
+
+(defn arrive-at-locking! [hospital person]
+  (swap! hospital h.logic/arrive-at-lock :waiting-line person))
+
+(comment "Locking locks the resource (hospital) until processing is done.")
+(defn simulation-parallel-thread-locking []
+  (let [hospital (atom (h.model/new-hospital))]
+    (.start (Thread. (fn [])))
+    (.start (Thread. (fn [] (arrive-at-locking! hospital "111"))))
+    (.start (Thread. (fn [] (arrive-at-locking! hospital "222"))))
+    (.start (Thread. (fn [] (arrive-at-locking! hospital "333"))))
+    (.start (Thread. (fn [] (arrive-at-locking! hospital "444"))))
+    (.start (Thread. (fn [] (arrive-at-locking! hospital "555"))))
+    ;; (.start (Thread. (fn [] (arrive-at-locking! hospital "666"))))
+    (.start (Thread. (fn [] (Thread/sleep 10000)
+                       (pprint @hospital))))))
+
+
+(simulation-parallel-thread-locking)

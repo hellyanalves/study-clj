@@ -7,6 +7,6 @@
     {:waiting-line empty-line
      :lab-1 empty-line
      :lab-2 empty-line
-     :lab3 empty-line})
+     :lab-3 empty-line})
 
 
