@@ -1,0 +1,1 @@
+(ns hospital-test.schema)
