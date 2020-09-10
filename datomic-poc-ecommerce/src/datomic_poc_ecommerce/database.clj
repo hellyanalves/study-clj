@@ -15,7 +15,20 @@ must be defined.")
                           {:db/ident       :product/price
                            :db/valueType   :db.type/bigdec
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "Product price with monetary precision"}])
+                           :db/doc         "Product price with monetary precision"}
+                          {:db/ident       :product/available-units
+                           :db/valueType   :db.type/ref
+                           :db/cardinality :db.cardinality/many
+                           :db/isComponent true
+                           :db/doc         "Available units"}
+                          {:db/ident       :unit/id
+                           :db/valueType   :db.type/bigint
+                           :db/cardinality :db.cardinality/one
+                           :db/doc         "unit id"}
+                          {:db/ident       :unit/expiry-date
+                           :db/valueType   :db.type/string
+                           :db/cardinality :db.cardinality/one
+                           :db/doc         "unit expiry date"}])
 
 (defn open-connection [db-uri]
   (d/create-database db-uri)
