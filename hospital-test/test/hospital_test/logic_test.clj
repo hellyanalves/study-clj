@@ -1,10 +1,12 @@
 (ns hospital-test.logic-test
   (:require [clojure.test :refer [deftest is testing]]
             [hospital-test.logic :as h.logic]
-            [hospital-test.model :as h.model])
+            [hospital-test.model :as h.model]
+            [schema.core :as s])
   (:use clojure.pprint)
   (:import (clojure.lang ExceptionInfo)))
 
+(s/set-fn-validation! true)
 (comment "To get the benefits of TDD - Test Driven Development
 or Test Driven Design requires the developer to know what to test.")
 
@@ -13,6 +15,10 @@ One way to achieve that test checklist is by using border/edge
 cases. It's a good practice to create an actual checklist.
 Symbols that may be null and cause a wrong behaviour should also be considered
 as edge cases (such as department in this case)")
+
+(comment " *Integration Tests*
+Ensure the individual functions work does not ensure that they work
+together the way that is expected. To do that, integration tests are important.")
 
 (deftest patient-fits-queue?-test
   (testing "Patient fits queue"
@@ -44,22 +50,39 @@ as edge cases (such as department in this case)")
 
 (deftest transfer-patient-test
   (testing "Accepts patient if they fit in the queue"
-    (let [original-hospital {:waiting-line (conj h.model/empty-line 5), :x-ray-line h.model/empty-line}]
-      (is (= {:waiting-line [] :x-ray-line [5]}
+    (let [original-hospital {:waiting-line (conj h.model/empty-line "5"), :x-ray-line h.model/empty-line}]
+      (is (= {:waiting-line h.model/empty-line
+              :x-ray-line (conj h.model/empty-line "5")}
              (h.logic/transfer-patient original-hospital
                                        :waiting-line
                                        :x-ray-line))))
-    (let [original-hospital {:waiting-line (conj h.model/empty-line 5 6), :x-ray-line [8]}]
-      (is (= {:waiting-line [6] :x-ray-line [8 5]}
+    (let [original-hospital {:waiting-line (conj h.model/empty-line "5" "6"),
+                             :x-ray-line (conj h.model/empty-line "8")}]
+      (is (= {:waiting-line (conj h.model/empty-line "6") :x-ray-line (conj h.model/empty-line "8" "5")}
              (h.logic/transfer-patient original-hospital
                                        :waiting-line
                                        :x-ray-line)))))
   (testing "Refuses patient if they do not fit in the queue"
-    (let [full-hospital {:waiting-line (conj h.model/empty-line 5), :x-ray-line (conj h.model/empty-line 6 9 3 7 4)}]
-      (is (thrown? clojure.lang.ExceptionInfo
-             (h.logic/transfer-patient full-hospital
-                                       :waiting-line
-                                       :x-ray-line))))))
+    (let [full-hospital {:waiting-line (conj h.model/empty-line "5"),
+                         :x-ray-line (conj h.model/empty-line "6" "9" "3" "7" "4")}]
+      (is (thrown? ExceptionInfo
+                   (h.logic/transfer-patient full-hospital
+                                             :waiting-line
+                                             :x-ray-line)))))
+  ;; Guarantees that the schema is being validated (the schema validation can be altered)
+  (testing "Should not be able to perform transfer without an hospital"
+    (is (thrown? ExceptionInfo
+                 (h.logic/transfer-patient nil :waiting-line :x-ray-line))))
+  (testing "Required conditions"
+    (let [original-hospital {:waiting-line (conj h.model/empty-line "5"), :x-ray-line h.model/empty-line}]
+      (is (thrown? AssertionError
+                   (h.logic/transfer-patient original-hospital
+                                             :non-existing-department
+                                             :x-ray-line)))
+      (is (thrown? AssertionError
+                   (h.logic/transfer-patient original-hospital
+                                             :x-ray-line
+                                             :non-existing-department))))))
 
 
 (deftest arrive-at!-test
