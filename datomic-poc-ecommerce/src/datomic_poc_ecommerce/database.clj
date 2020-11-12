@@ -4,31 +4,34 @@
 
 (comment "To specify the values a datom property can take in this database a schema
 must be defined.")
-(def ^:private db-schema [{:db/ident       :product/name
-                           :db/valueType   :db.type/string
+(def ^:private db-schema [{:db/ident :product/name
+                           :db/valueType :db.type/string
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "Product name"}
-                          {:db/ident       :product/slug
-                           :db/valueType   :db.type/string
+                           :db/doc "Product name"}
+                          {:db/ident :product/slug
+                           :db/valueType :db.type/string
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "Product http path"}
-                          {:db/ident       :product/price
-                           :db/valueType   :db.type/bigdec
+                           :db/doc "Product http path"}
+                          {:db/ident :product/price
+                           :db/valueType :db.type/bigdec
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "Product price with monetary precision"}
-                          {:db/ident       :product/available-units
-                           :db/valueType   :db.type/ref
+                           :db/doc "Product price with monetary precision"}
+                          {:db/ident :product/available-units
+                           :db/valueType :db.type/ref
                            :db/cardinality :db.cardinality/many
                            :db/isComponent true
-                           :db/doc         "Available units"}
-                          {:db/ident       :unit/id
-                           :db/valueType   :db.type/bigint
+                           :db/doc "Available units"}
+                          {:db/ident :unit/id
+                           :db/valueType :db.type/bigint
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "unit id"}
-                          {:db/ident       :unit/expiry-date
-                           :db/valueType   :db.type/string
+                           :db/doc "unit id"}
+                          {:db/ident :unit/expiry-date
+                           :db/valueType :db.type/string
                            :db/cardinality :db.cardinality/one
-                           :db/doc         "unit expiry date"}])
+                           :db/doc "unit expiry date"}
+                          {:db/ident :product/keyword
+                           :db/valueType :db.type/string
+                           :db/cardinality :db.cardinality/many}])
 
 (defn open-connection [db-uri]
   (d/create-database db-uri)
@@ -71,12 +74,15 @@ must be defined.")
   (d/q '[:find ?any-value
          :where [_ :product/slug ?any-value]] db))
 
-(defn all-products-prices [db]
+(defn all-products-prices [db requested-min-price]
   "List all products. Returns name, price tuple"
   (d/q '[:find ?name, ?price
+         :in $, ?min-price
          :keys name, price
          :where [?product :product/price ?price]
-                [?product :product/name ?name]] db))
+         [(> ?price ?min-price)]
+         [?product :product/name ?name]]
+       db, requested-min-price))
 
 (defn all-products-prices-keys [db]
   "List all products. Returns a map containing the keys name and price"
@@ -87,10 +93,17 @@ must be defined.")
 
 (defn all-products [db]
   "List all products. Using pull to get all specified fields from entity ?product"
-  (d/q '[:find (pull ?product [:product/name :product/price :product/slug])
+  (d/q '[:find (pull ?product [*])
          :where [?product :product/name]] db))
 
 (defn all-products-all-fields [db]
   "List all products. Using pull to get all fields from entity ?product"
   (d/q '[:find (pull ?product [*])
          :where [?product :product/name]] db))
+
+(defn all-products-by-keyword [db keyword]
+  "List all products by keyword"
+  (d/q '[:find (pull ?product [*])
+         :in $, ?keyword
+         :where [?product :product/keyword ?keyword]]
+       db, keyword))
